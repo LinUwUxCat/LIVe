@@ -37,6 +37,7 @@ int main(int argc, char* argv[]){
     bool IsImGuiDemoWindowOpen = false;
 
     bool ReloadImage = argc > 1;
+    int w,h,x,y;
     float ZoomLevel = 1.0f;
 
     Uint64 FPSDisplayAmount = 0; //Number shown on UI, refreshes every second 
@@ -57,6 +58,9 @@ int main(int argc, char* argv[]){
                     MainLoop = false;
                 }
                 break;
+            case SDL_EVENT_MOUSE_WHEEL:
+                if (event.wheel.y > 0) ZoomLevel += 0.1f;
+                else if (ZoomLevel > 0.1f) ZoomLevel -= 0.1f;
         }
 
 
@@ -95,14 +99,17 @@ int main(int argc, char* argv[]){
             if (texture == NULL){
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Could not render image"); // Replace this with a text, or an imgui popup?
             }
-            int w,h,x,y;
-            SDL_QueryTexture(texture, NULL, NULL, &w, &h);
-            texr.w=w*ZoomLevel;texr.h=h*ZoomLevel;
-            SDL_GetWindowSize(window, &x, &y);
-            texr.x=x/2-w/2;texr.y=y/2-h/2;
+
 
             ReloadImage = false;
         }
+
+        SDL_QueryTexture(texture, NULL, NULL, &w, &h);
+        texr.w = w * ZoomLevel;
+        texr.h = h * ZoomLevel;
+        SDL_GetWindowSize(window, &x, &y);
+        texr.x = x/2 - texr.w/2;
+        texr.y = y/2 - texr.h/2;
 
         // Image rendering
         SDL_RenderTexture(renderer, texture, NULL, &texr);
