@@ -7,3 +7,12 @@ SDL_Surface* BMP_GetSurface(char* filename){
     SDL_RWops* file = SDL_RWFromFile(filename, "rb");
     return SDL_LoadBMP_RW(file, SDL_TRUE); 
 }
+
+void BMP_GetMetadata(SDL_Surface* Surface, ParamList* Metadata){
+    if (Metadata == NULL) return;
+    char* size;
+    SDL_asprintf(&size, "%dx%d", Surface->w, Surface->h);
+    Metadata->addParameter("Format", "BMP");
+    Metadata->addParameter("Dimensions", size);
+    Metadata->addParameter("Pixel Format", (char*)SDL_GetPixelFormatName(Surface->format->format));
+}

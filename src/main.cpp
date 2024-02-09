@@ -5,6 +5,8 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
+
+#include "types.h"
 #include "image.h"
 
 int main(int argc, char* argv[]){
@@ -35,10 +37,12 @@ int main(int argc, char* argv[]){
     bool MainLoop = true;
 
     bool IsImGuiDemoWindowOpen = false;
+    bool IsMetadataWindowOpen = false;
 
     bool ReloadImage = argc > 1;
     int w,h,x,y;
     float ZoomLevel = 1.0f;
+    ParamList Metadata;
 
     Uint64 FPSDisplayAmount = 0; //Number shown on UI, refreshes every second 
     Uint64 FPSCount = 0;         //Number that goes up by one each frame
@@ -78,7 +82,11 @@ int main(int argc, char* argv[]){
                 ImGui::MenuItem("Quit", NULL, &MainLoop);
                 ImGui::EndMenu();
             }
-            if (ImGui::BeginMenu("Info")){
+            if (ImGui::BeginMenu("Image")){
+                ImGui::MenuItem("Metadata", NULL, &IsMetadataWindowOpen);
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("Debug")){
                 ImGui::MenuItem("Dear ImGui Demo Window", NULL, &IsImGuiDemoWindowOpen);
                 ImGui::Value("FPS", (int)FPSDisplayAmount);
                 ImGui::EndMenu();
@@ -86,6 +94,27 @@ int main(int argc, char* argv[]){
             ImGui::EndMainMenuBar();
         }
         if (IsImGuiDemoWindowOpen)ImGui::ShowDemoWindow(&IsImGuiDemoWindowOpen);
+
+        if (IsMetadataWindowOpen){
+            if (ImGui::Begin("Image Metadata", &IsMetadataWindowOpen)){
+                if (ImGui::BeginTable("metatable", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders)){
+                    ImGui::TableSetupColumn("Property");
+                    ImGui::TableSetupColumn("Value");
+                    ImGui::TableHeadersRow();
+
+                    for (int i=0; i<Metadata.length(); i++){ //the length function here takes care of checking if parameters and values are the same length
+                        ImGui::TableNextColumn();
+                        ImGui::Text(Metadata.parameters[i]);
+                        ImGui::TableNextColumn();
+                        ImGui::Text(Metadata.values[i]);
+                    }
+
+                    ImGui::EndTable();
+                }
+
+            }
+            ImGui::End();
+        }
 
         ImGui::Render();
 
@@ -96,7 +125,9 @@ int main(int argc, char* argv[]){
 
         // Image Reloading if needed
         if (ReloadImage){
-            surface = ImageGetSurface(argv[1]);
+            Metadata.clear();
+            if (argc > 1) surface = ImageGetSurface(argv[1], &Metadata);
+            else surface = NULL;
             texture = SDL_CreateTextureFromSurface(renderer, surface);
             if (texture == NULL){
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Could not render image"); // Replace this with a text, or an imgui popup?
