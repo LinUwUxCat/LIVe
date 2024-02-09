@@ -1,6 +1,6 @@
 #include "image.h"
 #include "formats/BMP.h"
-
+#include "formats/TGA.h"
 
 SDL_Surface* ImageGetSurface(char* filename, ParamList* Metadata = NULL){
     char* ext = SDL_strrchr(filename, '.');
@@ -12,6 +12,8 @@ SDL_Surface* ImageGetSurface(char* filename, ParamList* Metadata = NULL){
         SDL_Surface* s = BMP_GetSurface(filename);
         BMP_GetMetadata(s, Metadata);
         return s;
+    } else if (!SDL_strcasecmp(ext, ".tga")){
+        return TGA_GetSurfaceAndMetadata(filename, Metadata);
     } else {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "The %s format is not supported", ext);
         return NULL;
