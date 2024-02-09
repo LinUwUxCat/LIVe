@@ -1,8 +1,15 @@
 #include "types.h"
+#include <cstdio>
+#include <cstdarg>
 
-void ParamList::addParameter(char *parameter, char *value){
+void ParamList::addParameter(char *parameter, char *value, ...){
     this->parameters.push_back(parameter);
-    this->values.push_back(value);
+    va_list args;
+    va_start(args, value);
+    char* val;
+    vasprintf(&val, value, args);
+    va_end(args);
+    this->values.push_back(val);
 }
 
 void ParamList::clear(){
