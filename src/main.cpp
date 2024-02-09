@@ -60,7 +60,9 @@ int main(int argc, char* argv[]){
                 break;
             case SDL_EVENT_MOUSE_WHEEL:
                 if (event.wheel.y > 0) ZoomLevel += 0.1f;
-                else if (ZoomLevel > 0.1f) ZoomLevel -= 0.1f;
+                else ZoomLevel -= 0.1f;
+                if (ZoomLevel < 0.1f) ZoomLevel = 0.1f;
+                break;
         }
 
 
@@ -112,6 +114,7 @@ int main(int argc, char* argv[]){
         texr.y = y/2 - texr.h/2;
 
         // Image rendering
+        SDL_SetRenderViewport(renderer, NULL);
         SDL_RenderTexture(renderer, texture, NULL, &texr);
         
         ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData());
