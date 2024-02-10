@@ -59,30 +59,22 @@ SDL_Surface* TGA_GetSurfaceAndMetadata(char* filename, ParamList* Metadata){
 
     Uint8* pixels = (Uint8*)SDL_malloc(w*h*BytesPerPixel); 
 
-    //for (Uint64 i=0; i<w*h*BytesPerPixel; i++)pixels[i] = fgetc(f);
+    for (Uint64 i=0; i<w*h*BytesPerPixel; i++)pixels[i] = fgetc(f);
 
-    for (Uint64 i=0; i<h; i++){
-        for (Uint64 j=0; j<w*BytesPerPixel; j+=4){
-            for (int k=0; k<BytesPerPixel; k++){
-                pixels[i*w*BytesPerPixel+j+k] = fgetc(f);
-            }
-        }
-    }
-
-    //Extension area. This is optional.
-    if (extOffset != 0){
+    //Extension area. This is optional. Only here if version = 2
+    if (version ==2 && extOffset != 0){
         fseek(f, extOffset, SEEK_SET);
     }
 
-    //Developer area. This is related to the software ID in the extension area. Optional.
-    if (devOffset != 0){
+    //Developer area. This is related to the software ID in the extension area. Optional. Only here if version = 2
+    if (version == 2 && devOffset != 0){
         Metadata->addParameter("Developer area", "UNKNOWN"); //Depends
     }
     
     Metadata->addParameter("Pixel Format", (char*)SDL_GetPixelFormatName(TGA_GetPixelFormat(bpp)));
     
     fclose(f);
-    SDL_Surface* s = SDL_CreateSurfaceFrom((void*)pixels, h, w, w*BytesPerPixel, TGA_GetPixelFormat(bpp));
+    SDL_Surface* s = SDL_CreateSurfaceFrom((void*)pixels, w, h, w*BytesPerPixel, TGA_GetPixelFormat(bpp));
     if (!TtB) FlipSurfaceVertical(s);
     if (RtL) FlipSurfaceHorizontal(s);
     return s;
@@ -94,7 +86,7 @@ SDL_PixelFormatEnum TGA_GetPixelFormat(int BitsPerPixel){
         case 8 : return SDL_PIXELFORMAT_RGB332;
         case 15: return SDL_PIXELFORMAT_XRGB1555;
         case 16: return SDL_PIXELFORMAT_ARGB1555;
-        case 24: return SDL_PIXELFORMAT_XRGB8888;
+        case 24: return SDL_PIXELFORMAT_BGR24;
         case 32: return SDL_PIXELFORMAT_ARGB8888;
         default: return SDL_PIXELFORMAT_UNKNOWN;
     }
