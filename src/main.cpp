@@ -160,8 +160,7 @@ int main(int argc, char* argv[]){
         // Image Reloading if needed
         if (ReloadImage){
             Metadata.clear();
-            if (argc > 1) surface = ImageGetSurface(ImagePath, &Metadata);
-            else surface = NULL;
+            surface = ImageGetSurface(ImagePath, &Metadata);
             texture = SDL_CreateTextureFromSurface(renderer, surface);
             if (texture == NULL){
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Could not render image"); // Replace this with a text, or an imgui popup?
