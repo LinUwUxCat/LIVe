@@ -42,6 +42,10 @@ int main(int argc, char* argv[]){
     bool ReloadImage = argc > 1;
     int w,h,x,y;
     float ZoomLevel = 1.0f;
+    bool MouseImageMovement = false;
+    float OffsetX = 0.0f;
+    float OffsetY = 0.0f;
+    bool ResetView = false;
     ParamList Metadata;
 
     Uint64 FPSDisplayAmount = 0; //Number shown on UI, refreshes every second 
@@ -53,6 +57,7 @@ int main(int argc, char* argv[]){
         // Event handling
         SDL_PollEvent(&event);
         ImGui_ImplSDL3_ProcessEvent(&event);
+        ImGuiIO& io = ImGui::GetIO();
         switch(event.type){
             case SDL_EVENT_QUIT:
                 MainLoop = false;
@@ -63,10 +68,25 @@ int main(int argc, char* argv[]){
                 }
                 break;
             case SDL_EVENT_MOUSE_WHEEL:
+                if (io.WantCaptureMouse)break; //Do not zoom if scrolling ui
                 if (event.wheel.y > 0) ZoomLevel += 0.1f;
                 else ZoomLevel -= 0.1f;
                 if (ZoomLevel < 0.1f) ZoomLevel = 0.1f;
                 break;
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
+                if (io.WantCaptureMouse)break;
+                if (event.button.button == SDL_BUTTON_LEFT) MouseImageMovement = true;
+                break;
+            case SDL_EVENT_MOUSE_BUTTON_UP:
+                if (event.button.button == SDL_BUTTON_LEFT) MouseImageMovement = false;
+                break;
+            case SDL_EVENT_MOUSE_MOTION:
+                if (MouseImageMovement){
+                    OffsetX += event.motion.xrel;
+                    OffsetY += event.motion.yrel;
+                }
+                break;
+
         }
 
 
@@ -83,6 +103,7 @@ int main(int argc, char* argv[]){
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Image")){
+                ImGui::MenuItem("Reset View", NULL, &ResetView);
                 ImGui::MenuItem("Metadata", NULL, &IsMetadataWindowOpen);
                 ImGui::EndMenu();
             }
@@ -122,7 +143,6 @@ int main(int argc, char* argv[]){
         SDL_SetRenderDrawColor(renderer, (Uint8)0, (Uint8)0, (Uint8)0, (Uint8)255);
         SDL_RenderClear(renderer);
 
-
         // Image Reloading if needed
         if (ReloadImage){
             Metadata.clear();
@@ -137,12 +157,19 @@ int main(int argc, char* argv[]){
             ReloadImage = false;
         }
 
+        if (ResetView){
+            ResetView = false;
+            OffsetX = 0.0f;
+            OffsetY = 0.0f;
+            ZoomLevel = 1.0f;
+        }
+
         SDL_QueryTexture(texture, NULL, NULL, &w, &h);
         texr.w = w * ZoomLevel;
         texr.h = h * ZoomLevel;
         SDL_GetWindowSize(window, &x, &y);
-        texr.x = x/2 - texr.w/2;
-        texr.y = y/2 - texr.h/2;
+        texr.x = x/2 - texr.w/2 + OffsetX;
+        texr.y = y/2 - texr.h/2 + OffsetY;
 
         // Image rendering
         SDL_SetRenderViewport(renderer, NULL);

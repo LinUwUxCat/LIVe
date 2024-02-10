@@ -25,9 +25,9 @@ SDL_Surface* TGA_GetSurfaceAndMetadata(char* filename, ParamList* Metadata){
     int IDLen = fgetc(f);
     Metadata->addParameter("Image ID field Length", "%d", IDLen);
     bool hasColorMap = (bool)fgetc(f);
-    Metadata->addParameter("Has Colormap", "%d", hasColorMap);
+    Metadata->addParameter("Has Colormap", "%s", hasColorMap?"true":"false");
     int imgType = fgetc(f);
-    Metadata->addParameter("Image Type", "%d", IDLen);
+    Metadata->addParameter("Image Type", "%d", imgType);
     if (hasColorMap){
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "NotImplemented : Implement TGA ColorMap!!");
         return NULL;
