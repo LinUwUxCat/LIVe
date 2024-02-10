@@ -1,10 +1,10 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_sdl3.h"
 #include "imgui/imgui_impl_sdlrenderer3.h"
+#include "tinyfiledialogs/tinyfiledialogs.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
-
 
 #include "types.h"
 #include "image.h"
@@ -40,6 +40,9 @@ int main(int argc, char* argv[]){
     bool IsMetadataWindowOpen = false;
 
     bool ReloadImage = argc > 1;
+    bool OpenNewImage = false;
+    char* ImagePath;
+    if (ReloadImage) ImagePath = argv[1];
     int w,h,x,y;
     float ZoomLevel = 1.0f;
     bool MouseImageMovement = false;
@@ -86,9 +89,7 @@ int main(int argc, char* argv[]){
                     OffsetY += event.motion.yrel;
                 }
                 break;
-
         }
-
 
         // Dear ImGui rendering
         ImGui_ImplSDLRenderer3_NewFrame();
@@ -97,7 +98,7 @@ int main(int argc, char* argv[]){
     
         if(ImGui::BeginMainMenuBar()){
             if (ImGui::BeginMenu("File")){
-                //ImGui::MenuItem("Open file", NULL, &hasToOpen);
+                ImGui::MenuItem("Open file", NULL, &OpenNewImage);
                 ImGui::MenuItem("Reload current image",NULL,&ReloadImage);
                 ImGui::MenuItem("Quit", NULL, &MainLoop);
                 ImGui::EndMenu();
@@ -143,16 +144,28 @@ int main(int argc, char* argv[]){
         SDL_SetRenderDrawColor(renderer, (Uint8)0, (Uint8)0, (Uint8)0, (Uint8)255);
         SDL_RenderClear(renderer);
 
+        ///Bool Conditions - Generally set by imgui
+
+        // Open a new image
+        if (OpenNewImage){
+            OpenNewImage = false;
+            const char *const patterns[2] = {"*.bmp", "*.tga"};
+            ImagePath = tinyfd_openFileDialog("Open an image...", "", 2, patterns, "Image Files", 0);
+            if (ImagePath) {
+                ReloadImage = true;
+                ResetView = true;
+            }
+        }
+
         // Image Reloading if needed
         if (ReloadImage){
             Metadata.clear();
-            if (argc > 1) surface = ImageGetSurface(argv[1], &Metadata);
+            if (argc > 1) surface = ImageGetSurface(ImagePath, &Metadata);
             else surface = NULL;
             texture = SDL_CreateTextureFromSurface(renderer, surface);
             if (texture == NULL){
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Could not render image"); // Replace this with a text, or an imgui popup?
             }
-
 
             ReloadImage = false;
         }
@@ -164,6 +177,8 @@ int main(int argc, char* argv[]){
             ZoomLevel = 1.0f;
         }
 
+        /// Texture Rendering
+        
         SDL_QueryTexture(texture, NULL, NULL, &w, &h);
         texr.w = w * ZoomLevel;
         texr.h = h * ZoomLevel;
@@ -171,12 +186,13 @@ int main(int argc, char* argv[]){
         texr.x = x/2 - texr.w/2 + OffsetX;
         texr.y = y/2 - texr.h/2 + OffsetY;
 
-        // Image rendering
         SDL_SetRenderViewport(renderer, NULL);
         SDL_RenderTexture(renderer, texture, NULL, &texr);
         
         ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData());
         SDL_RenderPresent(renderer);
+
+        /// FPS Count - Very end of the frame
 
         if (FPSLastTime <= SDL_GetTicks() - 1000){
             FPSLastTime = SDL_GetTicks();
