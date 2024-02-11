@@ -83,6 +83,32 @@ SDL_Surface* TGA_GetSurfaceAndMetadata(char* filename, ParamList* Metadata){
     //Extension area. This is optional. Only here if version = 2
     if (version == 2 && extOffset != 0){
         fseek(f, extOffset, SEEK_SET);
+        int extSize = 495;
+        fread(&extSize, 1, 2, f);
+        if (extSize == 495){
+            //Author Name
+            char* authorName = (char*)SDL_malloc(41); 
+            fread(authorName, 1, 41, f);
+            Metadata->addParameter("Author Name", authorName);
+            //Author Comments
+            for (int i=0; i<4; i++){
+                char* commentLine = (char*)SDL_malloc(81);
+                fread(commentLine, 1, 81, f);
+                Metadata->addParameter((char*)(i==0?"Author Comments":""), commentLine);
+            }
+            //DateTime
+            int month,day,year,hour,minute,second;
+            fread(&month,1,2,f);
+            fread(&day,1,2,f);
+            fread(&year,1,2,f);
+            fread(&hour,1,2,f);
+            fread(&minute,1,2,f);
+            fread(&second,1,2,f);
+            Metadata->addParameter("Date and Time", "%d/%d/%d %d:%d:%d", day, month, year, hour, minute, second);
+            //There is more information available. However it is not pertinent for now, and besides i have yet to find a TGA file that has some.
+
+
+        } else Metadata->addParameter("Extension area", "UNKNOWN");
     }
 
     //Developer area. This is related to the software ID in the extension area. Optional. Only here if version = 2
