@@ -41,6 +41,7 @@ int main(int argc, char* argv[]){
 
     bool ReloadImage = argc > 1;
     bool OpenNewImage = false;
+    bool IsImageLoaded = false;
     char* ImagePath;
     if (ReloadImage) ImagePath = argv[1];
     int w,h,x,y;
@@ -160,11 +161,16 @@ int main(int argc, char* argv[]){
         // Image Reloading if needed
         if (ReloadImage){
             Metadata.clear();
+            if (IsImageLoaded){ //Don't do this on first load.
+                //void* pixels = surface->pixels;   // Note : This crashes sometimes and i don't know why.
+                SDL_DestroySurface(surface);        // Apparently this is about a double-free, but DestroySurface doesn't free if i call CreateSurfaceFrom.
+                //SDL_free(pixels);                 // So i'm a bit lost. Until i know why, there will be a memory leak :(
+            }
             surface = ImageGetSurface(ImagePath, &Metadata);
             texture = SDL_CreateTextureFromSurface(renderer, surface);
             if (texture == NULL){
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Could not render image"); // Replace this with a text, or an imgui popup?
-            }
+            } else IsImageLoaded = true;
 
             ReloadImage = false;
         }

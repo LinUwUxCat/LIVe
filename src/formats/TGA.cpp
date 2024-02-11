@@ -28,12 +28,19 @@ SDL_Surface* TGA_GetSurfaceAndMetadata(char* filename, ParamList* Metadata){
     Metadata->addParameter("Has Colormap", "%s", hasColorMap?"true":"false");
     int imgType = fgetc(f);
     Metadata->addParameter("Image Type", "%d", imgType);
-    if (hasColorMap){
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "NotImplemented : Implement TGA ColorMap!!");
-        return NULL;
-    }
-    fseek(f, 5, SEEK_CUR);
-    fseek(f, 4, SEEK_CUR); //Always 0 unless your file sucks
+
+    //Color Map Specification
+    int colorMapFirstEntryIndex = 0;
+    fread(&colorMapFirstEntryIndex, 1, 2, f);
+    if (hasColorMap) Metadata->addParameter("ColorMap First Entry", "%d", colorMapFirstEntryIndex);
+    int colorMapLen = 0;
+    fread(&colorMapLen, 1, 2, f);
+    if (hasColorMap) Metadata->addParameter("ColorMap Length", "%d", colorMapLen);
+    int colorMapEntrySize = fgetc(f);
+    if (hasColorMap) Metadata->addParameter("ColorMap Entry Size", "%d", colorMapEntrySize);
+
+    //Image Specification
+    fseek(f, 4, SEEK_CUR); //Lower left position of the image on a screen having an origin on the lower left. Basically some sort of offset that i've never seen being used and that is ignored here either way
     int w = 0;
     int h = 0;
     fread(&w, 1, 2, f);
@@ -49,20 +56,32 @@ SDL_Surface* TGA_GetSurfaceAndMetadata(char* filename, ParamList* Metadata){
     //Image/Color Data
     if (IDLen!=0){
         char* IDInfo = (char*)SDL_malloc(IDLen);
+        fread(IDInfo, 1, IDLen, f);
         Metadata->addParameter("Image ID", IDInfo);
     }
 
-    //TODO ! Read color map data
-
     int BytesPerPixel = ((bpp+8-1)&-8)/8;   //Round to next multiple of 8, then divide by 8 to get Bytes per pixel.
                                             //Doing just /8 would work for 8/16/24/32 bpp but 15bpp exists.
-
     Uint8* pixels = (Uint8*)SDL_malloc(w*h*BytesPerPixel); 
 
-    for (Uint64 i=0; i<w*h*BytesPerPixel; i++)pixels[i] = fgetc(f);
+    if (hasColorMap){
+        int BytesPerEntry = ((colorMapEntrySize+8-1)&-8)/8;
+        Uint8* colorMapData = (Uint8*)SDL_malloc(colorMapLen*BytesPerEntry);
+        fread(colorMapData, 1, colorMapLen*BytesPerEntry, f);
+        for (Uint64 i=0; i<w*h; i+=BytesPerPixel){
+            int colorNumber = 0;
+            fread(&colorNumber, 1, BytesPerPixel, f);
+            if (colorNumber >= colorMapLen) colorNumber = 0; // Corrupted file?
+            for (int j = 0; j < BytesPerEntry; j++) pixels[i+j] = colorMapData[colorNumber*BytesPerEntry+j];
+        }
+    } else {
+        //Image Data
+        for (Uint64 i=0; i<w*h*BytesPerPixel; i++)pixels[i] = fgetc(f);
+    }
+
 
     //Extension area. This is optional. Only here if version = 2
-    if (version ==2 && extOffset != 0){
+    if (version == 2 && extOffset != 0){
         fseek(f, extOffset, SEEK_SET);
     }
 
@@ -71,7 +90,7 @@ SDL_Surface* TGA_GetSurfaceAndMetadata(char* filename, ParamList* Metadata){
         Metadata->addParameter("Developer area", "UNKNOWN"); //Depends
     }
     
-    Metadata->addParameter("Pixel Format", (char*)SDL_GetPixelFormatName(TGA_GetPixelFormat(bpp)));
+    Metadata->addParameter("Pixel Format", (char*)SDL_GetPixelFormatName(TGA_GetPixelFormat(hasColorMap?colorMapEntrySize:bpp)));
     
     fclose(f);
     SDL_Surface* s = SDL_CreateSurfaceFrom((void*)pixels, w, h, w*BytesPerPixel, TGA_GetPixelFormat(bpp));
