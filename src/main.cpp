@@ -162,9 +162,12 @@ int main(int argc, char* argv[]){
         if (ReloadImage){
             Metadata.clear();
             if (IsImageLoaded){ //Don't do this on first load.
-                //void* pixels = surface->pixels;   // Note : This crashes sometimes and i don't know why.
-                SDL_DestroySurface(surface);        // Apparently this is about a double-free, but DestroySurface doesn't free if i call CreateSurfaceFrom.
-                //SDL_free(pixels);                 // So i'm a bit lost. Until i know why, there will be a memory leak :(
+                if (surface->flags & SDL_PREALLOC){
+                    void* pixels = surface->pixels;
+                    SDL_DestroySurface(surface);
+                    SDL_free(pixels);
+                } else SDL_DestroySurface(surface);
+                
             }
             surface = ImageGetSurface(ImagePath, &Metadata);
             texture = SDL_CreateTextureFromSurface(renderer, surface);
