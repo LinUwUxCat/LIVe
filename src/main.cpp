@@ -150,8 +150,8 @@ int main(int argc, char* argv[]){
         // Open a new image
         if (OpenNewImage){
             OpenNewImage = false;
-            const char *const patterns[2] = {"*.bmp", "*.tga"};
-            ImagePath = tinyfd_openFileDialog("Open an image...", "", 2, patterns, "Image Files", 0);
+            const char *const patterns[3] = {"*.bmp", "*.tga", "*.dds"};
+            ImagePath = tinyfd_openFileDialog("Open an image...", "", 3, patterns, "Image Files", 0);
             if (ImagePath) {
                 ReloadImage = true;
                 ResetView = true;
