@@ -42,6 +42,7 @@ int main(int argc, char* argv[]){
     bool ReloadImage = argc > 1;
     bool OpenNewImage = false;
     bool IsImageLoaded = false;
+    bool SaveToBMP = false;
     char* ImagePath;
     if (ReloadImage) ImagePath = argv[1];
     int w,h,x,y;
@@ -100,6 +101,7 @@ int main(int argc, char* argv[]){
         if(ImGui::BeginMainMenuBar()){
             if (ImGui::BeginMenu("File")){
                 ImGui::MenuItem("Open file", NULL, &OpenNewImage);
+                ImGui::MenuItem("Save Image to BMP", NULL, &SaveToBMP);
                 ImGui::MenuItem("Reload current image",NULL,&ReloadImage);
                 ImGui::MenuItem("Quit", NULL, &MainLoop);
                 ImGui::EndMenu();
@@ -183,6 +185,13 @@ int main(int argc, char* argv[]){
             OffsetX = 0.0f;
             OffsetY = 0.0f;
             ZoomLevel = 1.0f;
+        }
+
+        if (SaveToBMP){
+            SaveToBMP = false;
+            const char* const patterns[1] = {"*.bmp"};
+            char* path = tinyfd_saveFileDialog("Save to...", "", 1, patterns, "BMP Files");
+            SDL_SaveBMP(surface, path);
         }
 
         /// Texture Rendering
