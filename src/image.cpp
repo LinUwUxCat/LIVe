@@ -22,3 +22,11 @@ SDL_Surface* ImageGetSurface(char* filename, ParamList* Metadata = NULL){
         return NULL;
     }    
 }
+
+Color24 ImageRGB565To888(Uint16 RGB565){
+    Color24 c;
+    c.R = ((RGB565 & 0b11111) * 527 + 23) >> 6;
+    c.G = (((RGB565 >> 5) & 0b111111) * 259 + 33) >> 6;
+    c.B = (((RGB565 >> 11) & 0b11111) * 527 + 23) >> 6;
+    return c;
+}

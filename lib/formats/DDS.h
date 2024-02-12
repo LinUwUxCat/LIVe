@@ -151,4 +151,8 @@ enum D3D10_RESOURCE_DIMENSION {
 SDL_Surface* DDS_GetSurfaceAndMetadata(char* filename, ParamList* Metadata);
 SDL_PixelFormatEnum DDS_GetPixelFormat(DDS_PIXELFORMAT DDSPixelFormat);
 Uint8* DDS_BC1GetPixels(FILE* f, Uint32 w, Uint32 h, int DDSPitch);
+Uint8* DDS_BC2GetPixels(FILE* f, Uint32 w, Uint32 h, int DDSPitch);
 Uint16 DDS_DivideRGB565(Uint16 color_0, Uint16 color_1, float d0, float d1, float dv);
+Color24 DDS_DivideRGB888(Color24 color_0, Color24 color_1, float d0, float d1, float dv);
+Uint32 DDS_888AddAlpha(Color24 RGB888, Uint8 alpha);
+void DDS_ReadReserved(ParamList* Metadata, char* dwReserved1);
