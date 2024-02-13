@@ -94,7 +94,7 @@ SDL_Surface* DDS_GetSurfaceAndMetadata(char* filename, ParamList* Metadata){
         //DXT1 / BC1
         DDSPitch = SDL_max(1, ((w+3)/4)) * 8;
         pixels = DDS_BC1GetPixels(f, w, h, DDSPitch);
-        pxfm = SDL_PIXELFORMAT_RGB24;
+        pxfm = SDL_PIXELFORMAT_RGB565;
 
         Metadata->addParameter("Compression Format", "%s / %s", fourCCsafe, "BC1");
     } else if (!SDL_strncmp(fourCCsafe, "DXT2", 4) || !SDL_strncmp(fourCCsafe, "DXT3", 4) || (isDX10 && (dx10DxgiFormat == DXGI_FORMAT_BC2_UNORM || dx10DxgiFormat == DXGI_FORMAT_BC2_UNORM_SRGB))){
