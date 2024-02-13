@@ -1,5 +1,4 @@
 #include "formats/TGA.h"
-#include "utils.h"
 #include <cstdio>
 
 SDL_Surface* TGA_GetSurfaceAndMetadata(char* filename, ParamList* Metadata){
@@ -120,8 +119,8 @@ SDL_Surface* TGA_GetSurfaceAndMetadata(char* filename, ParamList* Metadata){
     
     fclose(f);
     SDL_Surface* s = SDL_CreateSurfaceFrom((void*)pixels, w, h, w*BytesPerPixel, TGA_GetPixelFormat(bpp));
-    if (!TtB) FlipSurfaceVertical(s);
-    if (RtL) FlipSurfaceHorizontal(s);
+    if (!TtB) SDL_FlipSurface(s, SDL_FLIP_VERTICAL); // FlipSurfaceVertical(s);
+    if (RtL) SDL_FlipSurface(s, SDL_FLIP_HORIZONTAL); //FlipSurfaceHorizontal(s);
     return s;
 }
 

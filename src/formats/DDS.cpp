@@ -37,7 +37,7 @@ SDL_Surface* DDS_GetSurfaceAndMetadata(char* filename, ParamList* Metadata){
     Uint32 dwMipMapCount = 0;
     fread(&dwMipMapCount, 1, 4, f);
 
-    char* dwReserved1;
+    char* dwReserved1 = (char*)SDL_malloc(4*11);
     fread(dwReserved1, 1, 4*11, f);
 
     DDS_PIXELFORMAT ddspf;
@@ -105,6 +105,8 @@ SDL_Surface* DDS_GetSurfaceAndMetadata(char* filename, ParamList* Metadata){
 
         Metadata->addParameter("Compression Format", "%s / %s", fourCCsafe, "BC2");
         Metadata->addParameter("Stored Pixel Format", "RGB565 with 4-bit alpha");
+    } else if (!SDL_strncmp(fourCCsafe, "DXT4", 4) || !SDL_strncmp(fourCCsafe, "DXT5", 4) || (isDX10 && (dx10DxgiFormat == DXGI_FORMAT_BC3_UNORM || dx10DxgiFormat == DXGI_FORMAT_BC3_UNORM_SRGB))){
+
     }
 
     
