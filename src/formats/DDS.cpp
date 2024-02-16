@@ -106,7 +106,13 @@ SDL_Surface* DDS_GetSurfaceAndMetadata(char* filename, ParamList* Metadata){
         Metadata->addParameter("Compression Format", "%s / %s", fourCCsafe, "BC2");
         Metadata->addParameter("Stored Pixel Format", "RGB565 with 4-bit alpha");
     } else if (!SDL_strncmp(fourCCsafe, "DXT4", 4) || !SDL_strncmp(fourCCsafe, "DXT5", 4) || (isDX10 && (dx10DxgiFormat == DXGI_FORMAT_BC3_UNORM || dx10DxgiFormat == DXGI_FORMAT_BC3_UNORM_SRGB))){
+        //DXT2/3 / BC2
+        DDSPitch = SDL_max(1, ((w+3)/4)) * 16;
+        pixels = DDS_BC3GetPixels(f, w, h, DDSPitch);
+        pxfm = SDL_PIXELFORMAT_ARGB8888;
 
+        Metadata->addParameter("Compression Format", "%s / %s", fourCCsafe, "BC2");
+        Metadata->addParameter("Stored Pixel Format", "RGB565 with 8-bit alpha");
     }
 
     
@@ -155,10 +161,65 @@ Uint8* DDS_BC2GetPixels(FILE* f, Uint32 w, Uint32 h, int DDSPitch){
             colors[3] = DDS_DivideRGB888(colors[0], colors[1], 1, 2, 3); 
             for (int j = 0; j < 4; j++){
                 int row = fgetc(f);
-                pixels[i*w+k+j*w+3] = DDS_888AddAlpha(colors[(row >> 6) & 3], (alpha[j] >> 12) & 0b1111);  //a
-                pixels[i*w+k+j*w+2] = DDS_888AddAlpha(colors[(row >> 4) & 3], (alpha[j] >> 8) & 0b1111);   //b
-                pixels[i*w+k+j*w+1] = DDS_888AddAlpha(colors[(row >> 2) & 3], (alpha[j] >> 4) & 0b1111);   //c
-                pixels[i*w+k+j*w+0] = DDS_888AddAlpha(colors[row & 3], alpha[j] & 0b1111);                 //d
+                pixels[i*w+k+j*w+3] = DDS_888Add4BitAlpha(colors[(row >> 6) & 3], (alpha[j] >> 12) & 0b1111);  //a
+                pixels[i*w+k+j*w+2] = DDS_888Add4BitAlpha(colors[(row >> 4) & 3], (alpha[j] >> 8) & 0b1111);   //b
+                pixels[i*w+k+j*w+1] = DDS_888Add4BitAlpha(colors[(row >> 2) & 3], (alpha[j] >> 4) & 0b1111);   //c
+                pixels[i*w+k+j*w+0] = DDS_888Add4BitAlpha(colors[row & 3], alpha[j] & 0b1111);                 //d
+            }
+        }
+    }
+    return (Uint8*)pixels;
+}
+
+Uint8* DDS_BC3GetPixels(FILE* f, Uint32 w, Uint32 h, int DDSPitch){
+    Uint32* pixels = (Uint32*)SDL_malloc(h*DDSPitch);
+    for (int i = 0; i < h; i+=4){
+        for (int k = 0; k < w; k+=4){
+            Uint16 color_0;
+            Uint16 color_1;
+            Uint8 alpha_0;
+            Uint8 alpha_1;
+            Color24 colors[4] = {0,0,0,0};
+            fread(&alpha_0, 1, 1, f);
+            fread(&alpha_1, 1, 1, f);
+            Uint8 alpha[8] = {alpha_0,alpha_1,0,0,0,0,0,0};
+            if(true){
+                alpha[2] = 6.0f/7.0f*alpha[0] + 1.0f/7.0f*alpha[1];
+                alpha[3] = 5.0f/7.0f*alpha[0] + 2.0f/7.0f*alpha[1];
+                alpha[4] = 4.0f/7.0f*alpha[0] + 3.0f/7.0f*alpha[1];
+                alpha[5] = 3.0f/7.0f*alpha[0] + 4.0f/7.0f*alpha[1];
+                alpha[6] = 2.0f/7.0f*alpha[0] + 5.0f/7.0f*alpha[1];
+                alpha[7] = 1.0f/7.0f*alpha[0] + 6.0f/7.0f*alpha[1];
+            } else {
+                alpha[2] = 4.0f/5.0f*alpha[0] + 1.0f/5.0f*alpha[1];
+                alpha[3] = 3.0f/5.0f*alpha[0] + 2.0f/5.0f*alpha[1];
+                alpha[4] = 2.0f/5.0f*alpha[0] + 3.0f/5.0f*alpha[1];
+                alpha[5] = 1.0f/5.0f*alpha[0] + 4.0f/5.0f*alpha[1];
+                alpha[6] = 0;                        
+                alpha[7] = 255;                      
+            }
+            void* alphas[4] = {NULL,NULL,NULL,NULL}; //I hate this so much
+            Color24 alphas_0;
+            Color24 alphas_1;
+            fread(&alphas_0, 3, 1, f);
+            fread(&alphas_1, 3, 1, f);
+            alphas[0] = &alphas_0;
+            alphas[1] = (&alphas_0) + 12;
+            alphas[2] = &alphas_1;
+            alphas[3] = (&alphas_1) + 12;
+
+            fread(&color_0, 2, 1, f);
+            fread(&color_1, 2, 1, f);
+            colors[0] = ImageRGB565To888(color_0);
+            colors[1] = ImageRGB565To888(color_1);
+            colors[2] = DDS_DivideRGB888(colors[0], colors[1], 2, 1, 3); // Note : Here linear interpolation is calculated based on RGB888 instead of RGB565.
+            colors[3] = DDS_DivideRGB888(colors[0], colors[1], 1, 2, 3); 
+            for (int j = 0; j < 4; j++){
+                int row = fgetc(f);
+                pixels[i*w+k+j*w+3] = DDS_888Add8BitAlpha(colors[(row >> 6) & 3], alpha[(*(int*)(alphas[j]) >> 9) & 0b111]);   //a
+                pixels[i*w+k+j*w+2] = DDS_888Add8BitAlpha(colors[(row >> 4) & 3], alpha[(*(int*)(alphas[j]) >> 6) & 0b111]);   //b
+                pixels[i*w+k+j*w+1] = DDS_888Add8BitAlpha(colors[(row >> 2) & 3], alpha[(*(int*)(alphas[j]) >> 3) & 0b111]);   //c
+                pixels[i*w+k+j*w+0] = DDS_888Add8BitAlpha(colors[row & 3], alpha[(*(int*)(alphas[j]) >> 0) & 0b111]);                 //d
             }
         }
     }
@@ -183,9 +244,19 @@ Color24 DDS_DivideRGB888(Color24 color_0, Color24 color_1, float d0, float d1, f
 }
 
 //Note : Alpha is expected to be 4 bits.
-Uint32 DDS_888AddAlpha(Color24 RGB888, Uint8 alpha){
+Uint32 DDS_888Add4BitAlpha(Color24 RGB888, Uint8 alpha){
     Uint32 c = 0;
     c += (alpha * 17) << 24;
+    c += RGB888.B << 16;
+    c += RGB888.G << 8;
+    c += RGB888.R;
+    return c;
+}
+
+//Note : Alpha is expected to be 8 bits.
+Uint32 DDS_888Add8BitAlpha(Color24 RGB888, Uint8 alpha){
+    Uint32 c = 0;
+    c += alpha << 24;
     c += RGB888.B << 16;
     c += RGB888.G << 8;
     c += RGB888.R;
@@ -197,6 +268,4 @@ void DDS_ReadReserved(ParamList* Metadata, char* dwReserved1){
         Metadata->addParameter("Software", "GIMP");
         Metadata->addParameter("GIMP DDS Plugin Version", "%d.%d.%d", dwReserved1[10], dwReserved1[9], dwReserved1[8]);
     } else Metadata->addParameter("Reserved Information", "%s", dwReserved1);
-    
-    
 }
