@@ -84,7 +84,7 @@ SDL_Surface* DDS_GetSurfaceAndMetadata(char* filename, ParamList* Metadata){
     DDS_ReadReserved(Metadata, dwReserved1);
 
     Uint8* pixels;
-    SDL_PixelFormatEnum pxfm;
+    SDL_PixelFormat pxfm;
 
     char fourCCsafe[5] = {' ',' ',' ',' ','\0'};
     SDL_memcpy(fourCCsafe, &(ddspf.dwFourCC), 4);
@@ -118,7 +118,7 @@ SDL_Surface* DDS_GetSurfaceAndMetadata(char* filename, ParamList* Metadata){
     
     Metadata->addParameter("Displayed Pixel Format", "%s", SDL_GetPixelFormatName(pxfm));
     fclose(f);
-    SDL_Surface* s = SDL_CreateSurfaceFrom((void*)pixels, w, h, DDSPitch, pxfm);
+    SDL_Surface* s = SDL_CreateSurfaceFrom(w, h, pxfm, (void*)pixels, DDSPitch);
     return s;
 }
 

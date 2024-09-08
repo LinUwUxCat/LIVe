@@ -3,4 +3,4 @@
 #include "types.h"
 
 SDL_Surface* TGA_GetSurfaceAndMetadata(char* filename, ParamList* Metadata);
-SDL_PixelFormatEnum TGA_GetPixelFormat(int BitsPerPixel);
+SDL_PixelFormat TGA_GetPixelFormat(int BitsPerPixel);

@@ -25,7 +25,7 @@ int main(int argc, char* argv[]){
 
     window = SDL_CreateWindow("LIVe", 800, 600, SDL_WINDOW_RESIZABLE);
 
-    renderer = SDL_CreateRenderer(window, NULL, 0);
+    renderer = SDL_CreateRenderer(window, NULL);
 
     // Dear ImGui Init
     IMGUI_CHECKVERSION();
@@ -45,7 +45,8 @@ int main(int argc, char* argv[]){
     bool SaveToBMP = false;
     char* ImagePath;
     if (ReloadImage) ImagePath = argv[1];
-    int w,h,x,y;
+    float w,h;
+    int x,y;
     float ZoomLevel = 1.0f;
     bool MouseImageMovement = false;
     float OffsetX = 0.0f;
@@ -164,7 +165,7 @@ int main(int argc, char* argv[]){
         if (ReloadImage){
             Metadata.clear();
             if (IsImageLoaded){ //Don't do this on first load.
-                if (surface->flags & SDL_PREALLOC){
+                if (surface->flags & SDL_SURFACE_PREALLOCATED){
                     void* pixels = surface->pixels;
                     SDL_DestroySurface(surface);
                     SDL_free(pixels);
@@ -196,7 +197,7 @@ int main(int argc, char* argv[]){
 
         /// Texture Rendering
         
-        SDL_QueryTexture(texture, NULL, NULL, &w, &h);
+        SDL_GetTextureSize(texture, &w, &h);
         texr.w = w * ZoomLevel;
         texr.h = h * ZoomLevel;
         SDL_GetWindowSize(window, &x, &y);
@@ -206,7 +207,7 @@ int main(int argc, char* argv[]){
         SDL_SetRenderViewport(renderer, NULL);
         SDL_RenderTexture(renderer, texture, NULL, &texr);
         
-        ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData());
+        ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
         SDL_RenderPresent(renderer);
 
         /// FPS Count - Very end of the frame

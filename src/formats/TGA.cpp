@@ -118,14 +118,14 @@ SDL_Surface* TGA_GetSurfaceAndMetadata(char* filename, ParamList* Metadata){
     Metadata->addParameter("Pixel Format", (char*)SDL_GetPixelFormatName(TGA_GetPixelFormat(hasColorMap?colorMapEntrySize:bpp)));
     
     fclose(f);
-    SDL_Surface* s = SDL_CreateSurfaceFrom((void*)pixels, w, h, w*BytesPerPixel, TGA_GetPixelFormat(bpp));
+    SDL_Surface* s = SDL_CreateSurfaceFrom(w, h, TGA_GetPixelFormat(bpp), (void*)pixels, w*BytesPerPixel);
     if (!TtB) SDL_FlipSurface(s, SDL_FLIP_VERTICAL); // FlipSurfaceVertical(s);
     if (RtL) SDL_FlipSurface(s, SDL_FLIP_HORIZONTAL); //FlipSurfaceHorizontal(s);
     return s;
 }
 
 //Gets the correct pixel format according to the TGA spec. However this should also use the alpha stuff from desc.
-SDL_PixelFormatEnum TGA_GetPixelFormat(int BitsPerPixel){
+SDL_PixelFormat TGA_GetPixelFormat(int BitsPerPixel){
     switch (BitsPerPixel){
         case 8 : return SDL_PIXELFORMAT_RGB332;
         case 15: return SDL_PIXELFORMAT_XRGB1555;
