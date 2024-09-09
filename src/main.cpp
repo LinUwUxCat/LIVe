@@ -23,6 +23,10 @@ int main(int argc, char* argv[]){
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Could not init SDL3");
     }
 
+#ifdef __linux__
+    SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0"); //There is no need for compositor bypass in an image viewer.
+#endif //__linux__
+
     window = SDL_CreateWindow("LIVe", 800, 600, SDL_WINDOW_RESIZABLE);
 
     renderer = SDL_CreateRenderer(window, NULL);
