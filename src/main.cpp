@@ -23,12 +23,14 @@ int main(int argc, char* argv[]){
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Could not init SDL3");
     }
 
+// Hints
 #ifdef __linux__
     SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0"); //There is no need for compositor bypass in an image viewer.
 #endif //__linux__
 
-    window = SDL_CreateWindow("LIVe", 800, 600, SDL_WINDOW_RESIZABLE);
 
+    // SDL window and renderer
+    window = SDL_CreateWindow("LIVe", 800, 600, SDL_WINDOW_RESIZABLE);
     renderer = SDL_CreateRenderer(window, NULL);
 
     // Dear ImGui Init
@@ -42,6 +44,7 @@ int main(int argc, char* argv[]){
 
     bool IsImGuiDemoWindowOpen = false;
     bool IsMetadataWindowOpen = false;
+    bool IsSettingsWindowOpen = false;
 
     bool ReloadImage = argc > 1;
     bool OpenNewImage = false;
@@ -57,11 +60,12 @@ int main(int argc, char* argv[]){
     float OffsetY = 0.0f;
     bool ResetView = false;
     ParamList Metadata;
+    SDL_FColor BgColor = {0.05,0.05,0.05,1.0};
 
     Uint64 FPSDisplayAmount = 0; //Number shown on UI, refreshes every second 
     Uint64 FPSCount = 0;         //Number that goes up by one each frame
     Uint64 FPSLastTime = SDL_GetTicks();
-
+    
     while (MainLoop){
 
         // Event handling
@@ -119,11 +123,19 @@ int main(int argc, char* argv[]){
             if (ImGui::BeginMenu("Debug")){
                 ImGui::MenuItem("Dear ImGui Demo Window", NULL, &IsImGuiDemoWindowOpen);
                 ImGui::Value("FPS", (int)FPSDisplayAmount);
+                ImGui::MenuItem("Background Color", NULL, &IsSettingsWindowOpen);
                 ImGui::EndMenu();
             }
             ImGui::EndMainMenuBar();
         }
         if (IsImGuiDemoWindowOpen)ImGui::ShowDemoWindow(&IsImGuiDemoWindowOpen);
+        
+        if (IsSettingsWindowOpen){
+            if (ImGui::Begin("Background Color", &IsSettingsWindowOpen)){
+                ImGui::ColorEdit4("Background Color", &BgColor.r);
+            }
+            ImGui::End();
+        }
 
         if (IsMetadataWindowOpen){
             if (ImGui::Begin("Image Metadata", &IsMetadataWindowOpen)){
@@ -149,7 +161,7 @@ int main(int argc, char* argv[]){
         ImGui::Render();
 
         //SDL Rendering start
-        SDL_SetRenderDrawColor(renderer, (Uint8)0, (Uint8)0, (Uint8)0, (Uint8)255);
+        SDL_SetRenderDrawColor(renderer, BgColor.r*255, BgColor.g*255, BgColor.b*255, BgColor.a*255);
         SDL_RenderClear(renderer);
 
         ///Bool Conditions - Generally set by imgui
@@ -183,6 +195,7 @@ int main(int argc, char* argv[]){
             } else IsImageLoaded = true;
 
             ReloadImage = false;
+            ResetView = true;
         }
 
         if (ResetView){
@@ -190,6 +203,7 @@ int main(int argc, char* argv[]){
             OffsetX = 0.0f;
             OffsetY = 0.0f;
             ZoomLevel = 1.0f;
+            SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST); //TODO-SETTING
         }
 
         if (SaveToBMP){

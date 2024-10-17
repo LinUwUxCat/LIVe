@@ -106,16 +106,16 @@ SDL_Surface* DDS_GetSurfaceAndMetadata(char* filename, ParamList* Metadata){
         Metadata->addParameter("Compression Format", "%s / %s", fourCCsafe, "BC2");
         Metadata->addParameter("Stored Pixel Format", "RGB565 with 4-bit alpha");
     } else if (!SDL_strncmp(fourCCsafe, "DXT4", 4) || !SDL_strncmp(fourCCsafe, "DXT5", 4) || (isDX10 && (dx10DxgiFormat == DXGI_FORMAT_BC3_UNORM || dx10DxgiFormat == DXGI_FORMAT_BC3_UNORM_SRGB))){
-        //DXT2/3 / BC2
+        //DXT4/5 / BC3
         DDSPitch = SDL_max(1, ((w+3)/4)) * 16;
         pixels = DDS_BC3GetPixels(f, w, h, DDSPitch);
         pxfm = SDL_PIXELFORMAT_ARGB8888;
-
-        Metadata->addParameter("Compression Format", "%s / %s", fourCCsafe, "BC2");
+        
+        Metadata->addParameter("Compression Format", "%s / %s", fourCCsafe, "BC3");
         Metadata->addParameter("Stored Pixel Format", "RGB565 with 8-bit alpha");
     }
 
-    
+    Metadata->addParameter("Pitch", "%d", DDSPitch);
     Metadata->addParameter("Displayed Pixel Format", "%s", SDL_GetPixelFormatName(pxfm));
     fclose(f);
     SDL_Surface* s = SDL_CreateSurfaceFrom(w, h, pxfm, (void*)pixels, DDSPitch);
@@ -198,28 +198,41 @@ Uint8* DDS_BC3GetPixels(FILE* f, Uint32 w, Uint32 h, int DDSPitch){
                 alpha[6] = 0;                        
                 alpha[7] = 255;                      
             }
-            void* alphas[4] = {NULL,NULL,NULL,NULL}; //I hate this so much
-            Color24 alphas_0;
-            Color24 alphas_1;
-            fread(&alphas_0, 3, 1, f);
-            fread(&alphas_1, 3, 1, f);
-            alphas[0] = &alphas_0;
-            alphas[1] = (&alphas_0) + 12;
-            alphas[2] = &alphas_1;
-            alphas[3] = (&alphas_1) + 12;
+
+            int aidxbyte_0;
+            int aidxbyte_1;
+            fread(&aidxbyte_0, 3, 1, f); // alpha of pixels a to h
+            fread(&aidxbyte_1, 3, 1, f); // alpha of pixels i to p
+            int aidxbyte[2] = {aidxbyte_0, aidxbyte_1};
 
             fread(&color_0, 2, 1, f);
             fread(&color_1, 2, 1, f);
             colors[0] = ImageRGB565To888(color_0);
             colors[1] = ImageRGB565To888(color_1);
             colors[2] = DDS_DivideRGB888(colors[0], colors[1], 2, 1, 3); // Note : Here linear interpolation is calculated based on RGB888 instead of RGB565.
-            colors[3] = DDS_DivideRGB888(colors[0], colors[1], 1, 2, 3); 
-            for (int j = 0; j < 4; j++){
+            colors[3] = DDS_DivideRGB888(colors[0], colors[1], 1, 2, 3);
+
+            Uint8 aidx[16] = {0}; // alpha indexes
+
+            //Reading alpha index for each pixel
+            for (int b = 0; b < 2; b++){ // 2 times 3 bytes
+                // 8 pixels' alpha per byte.
+                for (int p = 0; p < 8; p++){ 
+                    aidx[p + b*8] = (aidxbyte[b] >> (p * 3)) & 0b111; // The pixels' alpha index 
+                }
+            }
+            
+            /*
+            i*w : pos y of the current 4x4 block
+            j*w : pos y of the current line in the current block
+            k   : pos x of the current block
+            p   : pos x of the current pixel in the line in the block
+            */
+            for (int j = 0; j < 4; j++){ // for each line 
                 int row = fgetc(f);
-                pixels[i*w+k+j*w+3] = DDS_888Add8BitAlpha(colors[(row >> 6) & 3], alpha[(*(int*)(alphas[j]) >> 9) & 0b111]);   //a
-                pixels[i*w+k+j*w+2] = DDS_888Add8BitAlpha(colors[(row >> 4) & 3], alpha[(*(int*)(alphas[j]) >> 6) & 0b111]);   //b
-                pixels[i*w+k+j*w+1] = DDS_888Add8BitAlpha(colors[(row >> 2) & 3], alpha[(*(int*)(alphas[j]) >> 3) & 0b111]);   //c
-                pixels[i*w+k+j*w+0] = DDS_888Add8BitAlpha(colors[row & 3], alpha[(*(int*)(alphas[j]) >> 0) & 0b111]);                 //d
+                for (int p = 0; p < 4; p++){ // for each pixel in the line
+                    pixels[i*w + k + j*w + p] = DDS_888Add8BitAlpha(colors[(row >> (2*p)) & 3], alpha[aidx[j*4 + p]]);
+                }
             }
         }
     }
